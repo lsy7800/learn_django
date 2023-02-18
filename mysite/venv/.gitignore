@@ -1,0 +1,4 @@
+# created by virtualenv automatically
+# 忽略在任何目录下名为 Lib的文件夹
+Lib/
+Scripts/
