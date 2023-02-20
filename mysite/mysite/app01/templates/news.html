@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+    {% load static %}
+	<title>Title</title>
+    <link rel="stylesheet" href="{% static '/plugins/bootstrap/css/bootstrap.min.css' %}">
+</head>
+<body>
+<h1>news</h1>
+
+<table class="tabled table-dart">
+	{% for title in news %}
+  <tr>
+    <td>{{title.news_title}}</td>
+	  <td>{{title.post_time}}</td>
+    {% endfor %}
+  </tr>
+</table>
+</body>
+</html>

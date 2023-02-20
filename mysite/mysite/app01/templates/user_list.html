@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"> {% load static %}
+    <title>User list</title>
+    <link rel="stylesheet" href="{% static '/plugins/bootstrap/css/bootstrap.min.css' %}">
+</head>
+
+<body>
+    <h1>用户列表</h1>
+    <img src="{% static 'img/01.png' %}" alt="这是什么" style="width:800px; height:450px;">
+<!--    单条数据-->
+    <h3>{{ n1 }}</h3>
+<!--    列表数据-->
+    {% for i in n2 %}
+        <h1>{{i}}</h1>
+    {% endfor %}
+<!--字典数据-->
+    {% for k, v in n3.items %}
+    <h5>{{k}}--{{v}}</h5>
+    {% endfor %}
+</body>
+
+<script src="{% static '/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+
+</html>
