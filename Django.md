@@ -207,3 +207,133 @@ def ege(request):
     # 如果需要重定向使用 return redirect('https://www.baidu.com')
 ```
 
+### 数据库操作
+
+django在内部提供了ORM框架
+
+ORM可以帮助我们创建，修改，删除数据库中的表，不需要写sql语句，但是无法创建数据库
+
+#### 创建数据库
+
+```sql
+# 创建数据库
+create database test DEFAULT CHARSET utf8 COLLATE utf9_general_ci;
+```
+
+#### 连接数据库
+
+```python
+# settings.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql', # 数据库引擎
+        'NAME': '[database-name]', # 数据库名称
+        'USER': 'root', # 用户
+        'PASSWORD': 'lsy930825', # 数据库密码
+        'HOST': '127.0.0.1', # 地址
+        'PORT': 3306, # 端口
+    }
+}
+```
+
+#### django操作表
+
+* 创建表
+
+* 删除表
+
+* 修改表
+
+  ```python
+  # models.py
+  from django.db import models
+  class UserInfo(models.Model):
+      name = models.CharFiled(max_length=32)
+      password = models.charFiled(max_length=64)
+      age = models.InterFiled()
+  
+      """
+      create table app01_userinfo(
+      	id bigint auto_increment primary key,
+      	name varchar(32),
+      	age int
+      ) default charset=utf8;
+      """
+  ```
+
+  ```python
+  # 执行命令
+  python manage.py makemigrarions
+  python manage.py migrate
+  ```
+
+  删除和修改表只需要修改models中的对应模型即可
+
+  在新增列时，由于可能存在数据，所以新增列必须要要指定新增列对应的数据：
+
+  * 手动输入一个值
+
+  * 设置默认值
+
+    ```python
+    age = models.IntegerFiled(default=2)
+    ```
+
+  * 允许为空
+
+    ```python
+    data = models.IntegerFiled(null=True, blank=True)
+    ```
+
+  #### 操作表中的数据
+
+  * 新增数据
+
+  ```python
+  # models.py 
+  class Department(models.Model):
+      title = models.CharField(max_length=16)
+      
+  Department.objects.create(title="销售部") # 在title中新增一行数据
+  """
+  如果又多项数据，则需要create(title="abc", age="123")
+  """
+  ```
+
+  * 删除数据
+
+  ```python
+  # models.py
+  class UserInfo(models.Model):
+      name = models.CharField(max_length=16)
+      password = models.CharField(max_length=64)
+      age = models.IntegerField(null=True)
+      
+  UserInfo.objects.filter(id=3).delete() # 删除id=3的数据
+  UserInfo.objects.all().delete() # 清空数据库所有数据
+  ```
+
+  * 获取数据
+
+  ```python
+  UserInfo.objects.all() # 获取所有数据
+  """
+  获取到的数据类型为Queryset[type 为 list]
+  """
+  
+  UserInfo.objects.filter(id=1) # 过滤id=1的数据，数据类型依然为QuerySet
+  UserInfo.objects.filter(id=1).first() # 使用first()直接获取到对象不需要再对QuerySet进行遍历
+  
+  UserInfo.objects.get(id=1) # 获取id=1的数据
+  ```
+
+  * 更新数据
+
+  ```python
+  UserInfo.objects.filter(id=1).update(password=9999) # 将id=1的数据更新为9999
+  UserInfo.objects.all().update(password=99999) # 将所有password修改为99999
+  ```
+
+  
+
+  
