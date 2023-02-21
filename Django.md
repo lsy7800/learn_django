@@ -285,55 +285,160 @@ DATABASES = {
     data = models.IntegerFiled(null=True, blank=True)
     ```
 
-  #### 操作表中的数据
 
-  * 新增数据
+#### 操作表中的数据
 
-  ```python
-  # models.py 
-  class Department(models.Model):
-      title = models.CharField(max_length=16)
-      
-  Department.objects.create(title="销售部") # 在title中新增一行数据
-  """
-  如果又多项数据，则需要create(title="abc", age="123")
-  """
-  ```
+* 新增数据
 
-  * 删除数据
+```python
+# models.py 
+class Department(models.Model):
+    title = models.CharField(max_length=16)
+    
+Department.objects.create(title="销售部") # 在title中新增一行数据
+"""
+如果又多项数据，则需要create(title="abc", age="123")
+"""
+```
 
-  ```python
-  # models.py
-  class UserInfo(models.Model):
-      name = models.CharField(max_length=16)
-      password = models.CharField(max_length=64)
-      age = models.IntegerField(null=True)
-      
-  UserInfo.objects.filter(id=3).delete() # 删除id=3的数据
-  UserInfo.objects.all().delete() # 清空数据库所有数据
-  ```
+* 删除数据
 
-  * 获取数据
+```python
+# models.py
+class UserInfo(models.Model):
+    name = models.CharField(max_length=16)
+    password = models.CharField(max_length=64)
+    age = models.IntegerField(null=True)
+    
+UserInfo.objects.filter(id=3).delete() # 删除id=3的数据
+UserInfo.objects.all().delete() # 清空数据库所有数据
+```
 
-  ```python
-  UserInfo.objects.all() # 获取所有数据
-  """
-  获取到的数据类型为Queryset[type 为 list]
-  """
-  
-  UserInfo.objects.filter(id=1) # 过滤id=1的数据，数据类型依然为QuerySet
-  UserInfo.objects.filter(id=1).first() # 使用first()直接获取到对象不需要再对QuerySet进行遍历
-  
-  UserInfo.objects.get(id=1) # 获取id=1的数据
-  ```
+* 获取数据
 
-  * 更新数据
+```python
+UserInfo.objects.all() # 获取所有数据
+"""
+获取到的数据类型为Queryset[type 为 list]
+"""
 
-  ```python
-  UserInfo.objects.filter(id=1).update(password=9999) # 将id=1的数据更新为9999
-  UserInfo.objects.all().update(password=99999) # 将所有password修改为99999
-  ```
+UserInfo.objects.filter(id=1) # 过滤id=1的数据，数据类型依然为QuerySet
+UserInfo.objects.filter(id=1).first() # 使用first()直接获取到对象不需要再对QuerySet进行遍历
 
-  
+UserInfo.objects.get(id=1) # 获取id=1的数据
+```
 
-  
+* 更新数据
+
+```python
+UserInfo.objects.filter(id=1).update(password=9999) # 将id=1的数据更新为9999
+UserInfo.objects.all().update(password=99999) # 将所有password修改为99999
+```
+
+
+
+#### 案例：用户管理
+
+1.展示用户列表
+
+* url
+* 函数
+  * 获取所有用户信息
+  * HTML渲染
+
+2.添加用户信息
+
+* url
+* 函数
+  * GET请求
+  * POST请求
+
+```python
+# models.py
+class User(models.Model):
+    username = models.CharField(max_length=64)
+    password = models.CharFiled(max_length=64)
+    age = models.IntegerFiled()
+    phone_number = models.CharFiled(max_length=11)
+    
+    def __str__:
+        return self.username
+```
+
+
+
+```python
+# views.py
+def user_list(request):
+    if request.method == "GET":
+        # 请求数据
+        user_list = models.User.objects.all()
+        retrun render(request, 'users.html', {"users": user_list})
+    if request.method == "POST":
+        # 添加数据
+        user_name = request.POST.get("name")
+        password = request.POST.get("password")
+        user_age = request.POST.get("age")
+        phone_num = request.POST.get("phone_num")
+        print(user_name, password, user_age, phone_num)
+        models.UserList.objects.create(name=user_name, password=password, age=user_age, phone_number=phone_num)
+        return redirect("/users/")
+    
+def user_delete(request):
+    # 删除数据
+    pk = request.GET.get("id")
+    print(pk)
+    models.UserList.objects.filter(id=pk).delete()
+
+    return redirect("/users/")
+```
+
+```python
+# urls.py
+
+urlpatterns = [
+    path("users/", views.user_list),
+    path("user_delete/", views.user_delete),
+]
+```
+
+```html
+<!-- users.html -->
+	<h1>用户列表</h1>
+	<table class="table table-dark">
+		<thead>
+		<tr>
+			<th>姓名</th>
+			<th>密码</th>
+			<th>年龄</th>
+			<th>电话</th>
+			<th>操作</th>
+		</tr>
+		</thead>
+		{% for user in users %}
+		<tr>
+			<td>{{user.name}}</td>
+			<td>{{user.password}}</td>
+			<td>{{user.age}}</td>
+			<td>{{user.phone_number}}</td>
+			<td><a href="/delete_info/?id={{user.id}}">删除数据</a></td>
+		</tr>
+		{% endfor %}
+	</table>
+
+	<form action="/users/" method="post" class="input-area">
+		{% csrf_token %}
+		<label>用户名</label>
+		<input type="text" name="name"/>
+		<label>密码</label>
+		<input type="text" name="password"/>
+		<label>年龄</label>
+		<input type="text" name="age"/>
+		<label>电话号码</label>
+		<input type="text" name="phone_num"/>
+		<button type="submit" class="btn btn-primary">添加用户信息</button>
+	</form>
+```
+
+
+

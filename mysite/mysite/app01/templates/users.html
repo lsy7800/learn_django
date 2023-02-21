@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	{% load static %}
+	<title>Users</title>
+	    <link rel="stylesheet" href="{% static '/plugins/bootstrap/css/bootstrap.min.css' %}">
+</head>
+<body>
+	<h1>用户列表</h1>
+	<table class="table table-dark">
+		<thead>
+		<tr>
+			<th>姓名</th>
+			<th>密码</th>
+			<th>年龄</th>
+			<th>电话</th>
+			<th>操作</th>
+		</tr>
+		</thead>
+		{% for user in users %}
+		<tr>
+			<td>{{user.name}}</td>
+			<td>{{user.password}}</td>
+			<td>{{user.age}}</td>
+			<td>{{user.phone_number}}</td>
+			<td><a href="/delete_info/?id={{user.id}}">删除数据</a></td>
+		</tr>
+		{% endfor %}
+	</table>
+
+	<form action="/users/" method="post" class="input-area">
+		{% csrf_token %}
+		<label>用户名</label>
+		<input type="text" name="name"/>
+		<label>密码</label>
+		<input type="text" name="password"/>
+		<label>年龄</label>
+		<input type="text" name="age"/>
+		<label>电话号码</label>
+		<input type="text" name="phone_num"/>
+		<button type="submit" class="btn btn-primary">添加用户信息</button>
+	</form>
+</body>
+<style>
+
+</style>
+</html>

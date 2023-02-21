@@ -24,5 +24,7 @@ urlpatterns = [
     path('template/show_template', views.show_template),
     path('unicom/news', views.unicom_new),
     path('net_request/', views.net_request),
-    path('login/', views.login)
+    path('login/', views.login),
+    path('users/', views.show_users),
+    path('delete_info/', views.delete_user)
 ]

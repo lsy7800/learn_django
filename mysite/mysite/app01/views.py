@@ -1,4 +1,5 @@
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render, HttpResponse, redirect
+from app01 import models
 import requests
 
 
@@ -52,3 +53,28 @@ def login(request):
         else:
             errMsg = "用户名或密码错误请重新输入"
             return render(request, 'login.html', {'errMsg': errMsg})
+
+
+def show_users(request):
+    if request.method == "GET":
+        user_list = models.UserList.objects.all()
+        return render(request, 'users.html', {"users": user_list})
+    else:
+        user_name = request.POST.get("name")
+        password = request.POST.get("password")
+        user_age = request.POST.get("age")
+        phone_num = request.POST.get("phone_num")
+        print(user_name, password, user_age, phone_num)
+
+        models.UserList.objects.create(name=user_name, password=password, age=user_age, phone_number=phone_num)
+
+        return redirect("/users/")
+
+
+def delete_user(request):
+    pk = request.GET.get("id")
+    print(pk)
+    models.UserList.objects.filter(id=pk).delete()
+
+    return redirect("/users/")
+
