@@ -1,5 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from app01 import models
+from django import forms
 import requests
 
 
@@ -78,3 +79,47 @@ def delete_user(request):
 
     return redirect("/users/")
 
+
+def add_user(request):
+    if request.method == "GET":
+        department = models.Department.objects.all()
+        return render(request, 'add_user.html', {"department": department})
+
+    if request.method == "POST":
+        user_name = request.POST.get("name")
+        password = request.POST.get("password")
+        user_age = request.POST.get("age")
+        gender = request.POST.get("gender")
+        salary = request.POSt.get("salary")
+        create_time = request.POST.get("create_time")
+        department = request.POST.get("department")
+        phone_num = request.POST.get("phone_num")
+
+        for info in request.POST:
+            print(info)
+        models.UserList.objects.create(name=user_name, password=password, age=user_age, phone_number=phone_num, gender=gender, salary=salary, create_time=create_time, department=department)
+        print("成功添加用戶")
+        return redirect('/users/')
+
+
+class UserForm(forms.ModelForm):
+    class Meta:
+        model = models.UserList
+        # fields = ["name", "password", "age"]
+        # 也可以是使用 fileds = '__all__'
+        fields = '__all__'
+        # widgets = {
+        #     "name": forms.TextInput(attrs={"class": "form-control"})
+        # }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            print(name, field)
+            field.widget.attrs = {"class": "form-control", "placeholder": field.label}
+
+
+def add_user2(request):
+    form = UserForm
+    if request.method == "GET":
+        return render(request, "add_user2.html", {"form": form})

@@ -353,19 +353,47 @@ UserInfo.objects.all().update(password=99999) # 将所有password修改为99999
   * GET请求
   * POST请求
 
+编写数据模型
+
 ```python
 # models.py
-class User(models.Model):
-    username = models.CharField(max_length=64)
-    password = models.CharFiled(max_length=64)
-    age = models.IntegerFiled()
-    phone_number = models.CharFiled(max_length=11)
-    
-    def __str__:
-        return self.username
+class Department(models.Model):
+    """部门列表"""
+    title = models.CharField(verbose_name="部门名称", max_length=64)
+
+
+class UserList(models.Model):
+    """员工列表"""
+    name = models.CharField(verbose_name='用户名', max_length=64)
+    password = models.CharField(verbose_name='密码', max_length=64)
+    age = models.IntegerField(verbose_name="年龄")
+    # 性别
+    gender_choice = (
+        (1, "男"),
+        (2, "女")
+    )
+    gender = models.SmallIntegerField(verbose_name="性别", choices=gender_choice, default=1)
+    phone_number = models.CharField(verbose_name="电话", max_length=11)
+    salary = models.DecimalField(verbose_name="薪资", max_digits=10, decimal_places=2, default=0)
+    create_time = models.DateTimeField(verbose_name="入职时间", null=True, blank=True)
+    # to 表示与哪张表进行关联
+    # to_fields 表示与表中的哪一列数据进行关联
+    # on_delete=models.CASCADE 表示级联删除，删除部门后与之关联的表信息均会删除
+    # on_delete=models.SET_NULL 表示删除部门后与之关联的信息会设置为空
+    department = models.ForeignKey(verbose_name="部门", to="Department", to_field="id", null=True, blank=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return self.name
 ```
 
+对数据库进行迁移
 
+```python
+python manage.py makemigrations
+python manage.py migrate
+```
+
+编写视图函数
 
 ```python
 # views.py
@@ -373,6 +401,13 @@ def user_list(request):
     if request.method == "GET":
         # 请求数据
         user_list = models.User.objects.all()
+        for user in user_list:
+            print(user.gender) # 得到的结果是 1 或 2
+            print(user.get_gender_display()) # 得到的结果是 男 或 女
+            print(user.department_id) # 得到的是数据库中存储的部门id
+            print(user.department) # 会进行自动连表查找获得id所对应的对象
+            print(user.department.title) # 会连表获取该条数据title所对应的内容
+            
         retrun render(request, 'users.html', {"users": user_list})
     if request.method == "POST":
         # 添加数据
@@ -384,6 +419,26 @@ def user_list(request):
         models.UserList.objects.create(name=user_name, password=password, age=user_age, phone_number=phone_num)
         return redirect("/users/")
     
+def add_user(request):
+    # 添加数据
+    if request.method == "GET":
+        depart = models.Department.objetcs.all()
+        return render(request, 'add_user.html', {"depart": depart})
+    if request.method == "POST":
+        user_name = request.POST.get("name")
+        password = request.POST.get("password")
+        user_age = request.POST.get("age")
+        gender = request.POST.get("gender")
+        salary = request.POSt.get("salary")
+        create_time = request.POST.get("create_time")
+        department = request.POST.get("department")
+        phone_num = request.POST.get("phone_num")
+        for info in request.POST:
+            print(info)
+        models.UserList.objects.create(name=user_name, password=password, age=user_age, phone_number=phone_num, gender=gender, salary=salary, create_time=create_time, department=department)
+        print("成功添加用戶")
+        return redirect('/users/')
+    
 def user_delete(request):
     # 删除数据
     pk = request.GET.get("id")
@@ -391,7 +446,31 @@ def user_delete(request):
     models.UserList.objects.filter(id=pk).delete()
 
     return redirect("/users/")
+
+def user_fix(request):
+    # 修改数据
+    if request.method = "GET":
+        pk = request.GET.get("id")
+        print(pk)
+        user_info = models.UserList.objects.filter(id=pk)
+        return render(request, "user_fix.html", {"user_info":user_info})
+    if request.method = "POST":
+        pk = request.POST.get("id")
+        user_name = request.POST.get("name")
+        password = request.POST.get("password")
+        user_age = request.POST.get("age")
+        gender = request.POST.get("gender")
+        salary = request.POSt.get("salary")
+        create_time = request.POST.get("create_time")
+        department = request.POST.get("department")
+        phone_num = request.POST.get("phone_num")
+        
+        models.UserList.objects.filter(id=pk).update(name=user_name, password=password, age=user_age, gender=gender, salary=salary, create_time=create_time, department=department, phone_number=phone_num)
+        print("数据修改成功")
+    	retrun redirect("/users/")
 ```
+
+编写路由
 
 ```python
 # urls.py
@@ -399,11 +478,14 @@ def user_delete(request):
 urlpatterns = [
     path("users/", views.user_list),
     path("user_delete/", views.user_delete),
+    path("user_add/", views.user_add),
+    path("user_fix/", views.user_fix)
 ]
 ```
 
 ```html
 <!-- users.html -->
+<!-- 员工界面 -->
 	<h1>用户列表</h1>
 	<table class="table table-dark">
 		<thead>
@@ -411,7 +493,11 @@ urlpatterns = [
 			<th>姓名</th>
 			<th>密码</th>
 			<th>年龄</th>
+			<th>性别</th>
 			<th>电话</th>
+			<th>薪资</th>
+			<th>入职</th>
+			<th>部门</th>
 			<th>操作</th>
 		</tr>
 		</thead>
@@ -420,24 +506,111 @@ urlpatterns = [
 			<td>{{user.name}}</td>
 			<td>{{user.password}}</td>
 			<td>{{user.age}}</td>
+			<td>{{user.gender}}</td>
 			<td>{{user.phone_number}}</td>
+			<td>{{user.salary}}</td>
+             <!-- 模板字符串需要进行格式化处理 -->
+			<td>{{user.create_time | date:"Y-m-d"}}</td> 
+			<td>{{user.department.title}}</td>
 			<td><a href="/delete_info/?id={{user.id}}">删除数据</a></td>
 		</tr>
 		{% endfor %}
 	</table>
+```
 
-	<form action="/users/" method="post" class="input-area">
-		{% csrf_token %}
-		<label>用户名</label>
-		<input type="text" name="name"/>
-		<label>密码</label>
-		<input type="text" name="password"/>
-		<label>年龄</label>
-		<input type="text" name="age"/>
-		<label>电话号码</label>
-		<input type="text" name="phone_num"/>
-		<button type="submit" class="btn btn-primary">添加用户信息</button>
-	</form>
+### 模板继承
+
+```html
+<!-- 母板base.html -->
+{% block content %}{% block %}
+
+<!-- 子模板componts.html -->
+<!-- 继承母板 -->
+{% extends 'base.html' %}
+
+<!-- 编辑内容 -->
+{% block content %}
+	<!-- content -->
+{% end block %}
+```
+
+### Form和ModelForm
+
+在新建用户时会遇到如下问题：
+
+```
+- 用户提交数据需要校验
+- 页面应该存在错误提示
+- 页面上的每一个字段都需要写入
+- 关联的数据需要手动获取并循环展示在页面中
+```
+
+#### Form
+
+```python
+# views.py
+
+class MyForm(Form):
+    """通过类来定义form"""
+    user = form.CharField(widget=forms.Input)
+    pwd = form.CharField(widget=forms.Input)
+    emmail = form.CharField(widget=forms.Input)
+
+def user_add(request):
+    if request.method == "GET":
+        form = MyForm()
+        return render(request, "add_user.html", {"form":form})
+```
+
+```html
+<!-- add_user.html -->
+<form>
+    {{ form.user }}
+    {{ form.pwd }}
+    {{ form.email }}
+</form>
+
+<!-- 可以使用循环 -->
+<form>
+    {% for field in form %}
+    	{{field}}
+    {% endfor %}
+</form>
+```
+
+#### ModelForm
+
+```python
+class MyForm(ModelForm):
+    class Meta:
+        model = UserList
+        fields = ["name", "password", "age", "gender", "phone_number", "salary", "department"]
+        # 如果需要一次性添加所有字段
+        # fields = '__all__'
+        
+        # 使用插件为每个字段添加class属性
+        widgets = {
+            "name":forms.InputText({"class": "form-control"})
+        }
+        
+    # 如果需要为所有的字段添加class属性
+    def __init__(self, *args, **kwargs):
+        # super()用来调用父类的方法
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            field.widget.attrs = {"class": "form-contorl", "placehoder": name}
+        
+def add_user(request):
+    form = MyForm()
+    return render(request, 'add_user.html', {'form':form})
+```
+
+```html
+<!-- add_user.html -->
+{% form item in form %}
+<label>{{item.label}}</label>
+{{item}}
+{% endfor %}
 ```
 
 

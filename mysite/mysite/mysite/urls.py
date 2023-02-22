@@ -26,5 +26,7 @@ urlpatterns = [
     path('net_request/', views.net_request),
     path('login/', views.login),
     path('users/', views.show_users),
-    path('delete_info/', views.delete_user)
+    path('delete_info/', views.delete_user),
+    path('add_user/', views.add_user),
+    path('add_user2/', views.add_user2),
 ]
