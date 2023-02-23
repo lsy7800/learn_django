@@ -360,6 +360,9 @@ UserInfo.objects.all().update(password=99999) # 将所有password修改为99999
 class Department(models.Model):
     """部门列表"""
     title = models.CharField(verbose_name="部门名称", max_length=64)
+    
+    def __str__:
+        return self.title
 
 
 class UserList(models.Model):
@@ -593,6 +596,11 @@ class MyForm(ModelForm):
             "name":forms.InputText({"class": "form-control"})
         }
         
+        # 如果需要校验更详细的数据，需要对该字段单独进行限制
+        name = forms.CharField(min_length=3)
+        password = forms.CharField(label="密码", validators="[re]")
+        # fields = [..., "name"]
+        
     # 如果需要为所有的字段添加class属性
     def __init__(self, *args, **kwargs):
         # super()用来调用父类的方法
@@ -601,8 +609,18 @@ class MyForm(ModelForm):
             field.widget.attrs = {"class": "form-contorl", "placehoder": name}
         
 def add_user(request):
-    form = MyForm()
-    return render(request, 'add_user.html', {'form':form})
+    if request.method =="GET":
+        form = MyForm()
+        return render(request, 'add_user.html', {'form':form})
+    elif request.method == "POST":
+        form = MyForm(data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('/users/')
+        else:
+            return render(request, 'add_user.html', {'form':form})
+            print(form.errors)
+        
 ```
 
 ```html
@@ -610,7 +628,69 @@ def add_user(request):
 {% form item in form %}
 <label>{{item.label}}</label>
 {{item}}
+<!-- 如果需要显示错误信息 -->
+{{form.errors.0}}
 {% endfor %}
+```
+
+#### 编辑用户
+
+* 点击编辑，跳转到编辑页面，携带ID
+* 编辑页面（默认数据根据ID获取设置到页面中）
+* 提交：
+  * 错误提示
+  * 数据校验
+  * 更新数据
+
+```python
+# urls.py
+urlspatterns = [
+    path("<int>:pk/update_user/", views.update_user),
+    path("<int>:pk/delete_user/", views.delete_user)
+]
+```
+
+
+
+```python
+# views.py
+
+def update_user(request, pk):
+    # 修改数据
+    if requst.method == "GET":
+        # 注意：使用get直接得到对象中的第一条数据
+        update_user = models.User.objects.get(id=pk)
+        # 注意：使用filter得到的是一个对象
+        # update_user = models.User.objects.filter(id=pk).first()
+        form = Myform(instance=update_user)
+        return render(request, 'update_user.html', {"form": form})
+    elif request.method == "POST":
+        update_user = models.User.objects.get(id=pk)
+        form = MyForm(data=request.POST, instance=update_user)
+        if form.isvalid():
+            form.save()
+            return redirect('/users/')
+        else:
+            return render(request, 'update_user.html', {"form": form})
+
+def delete_user(request, pk):
+    # 删除数据
+    if request.method == "GET":
+        models.User.objects.get(id=pk).delete()
+```
+
+### 靓号管理
+
+数据库表结构
+
+* id
+* mobile
+* level(1-5)
+* status(是否售卖)
+* price
+
+```python
+
 ```
 
 

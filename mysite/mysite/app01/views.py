@@ -115,11 +115,44 @@ class UserForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
-            print(name, field)
             field.widget.attrs = {"class": "form-control", "placeholder": field.label}
 
 
 def add_user2(request):
-    form = UserForm
+
     if request.method == "GET":
+        form = UserForm()
         return render(request, "add_user2.html", {"form": form})
+
+    elif request.method == "POST":
+        form = UserForm(data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('/users/')
+
+        else:
+            return render(request, 'add_user2.html', {"form": form})
+
+
+def update_user2(request, pk):
+
+    if request.method == "GET":
+        fix_data = models.UserList.objects.get(id=pk)
+        form = UserForm(instance=fix_data)
+        return render(request, 'update_user2.html', {"form": form})
+    else:
+        fix_data2 = models.UserList.objects.get(id=pk)
+        form = UserForm(request.POST, instance=fix_data2)
+        if form.is_valid():
+            form.save()
+            return redirect('/users/')
+        else:
+            return render(request, 'update_user2.html', {"form": form})
+
+
+def delete_user2(request, pk):
+
+    if request.method == "GET":
+        models.UserList.objects.get(id=pk).delete()
+
+        return redirect('/users/')

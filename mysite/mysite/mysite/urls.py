@@ -29,4 +29,6 @@ urlpatterns = [
     path('delete_info/', views.delete_user),
     path('add_user/', views.add_user),
     path('add_user2/', views.add_user2),
+    path('<int:pk>/update_user2/', views.update_user2),
+    path('<int:pk>/delete_user2/', views.delete_user2),
 ]

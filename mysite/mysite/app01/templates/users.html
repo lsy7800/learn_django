@@ -13,7 +13,7 @@
         <div class="card" style="margin-top: 15px;">
             <div class="card-header">
                 <h3>员工管理</h3>
-                <a href="#" class="btn btn-primary btn-lg">添加员工<i class="bi bi-plus-circle-fill" style="margin-left: 10px;"></i></a>
+                <a href="/add_user2/" class="btn btn-primary btn-lg">添加员工<i class="bi bi-plus-circle-fill" style="margin-left: 10px;"></i></a>
             </div>
             <div class="card-body">
                 <table class="table table-bordered align-middle">
@@ -41,7 +41,7 @@
                             <td>{{user.salary}}</td>
                             <td>{{user.create_time | date:"Y-m-d"}}</td>
                             <td>{{user.department.title}}</td>
-                            <td><a href="#" class="btn btn-success btn-sm" style="margin-right: 10px;">编辑</a><a href="#" class="btn btn-danger btn-sm">删除</a></td>
+                            <td><a href="/{{user.id}}/update_user2/" class="btn btn-success btn-sm" style="margin-right: 10px;">编辑</a><a href="/{{user.id}}/delete_user2/" class="btn btn-danger btn-sm">删除</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>
