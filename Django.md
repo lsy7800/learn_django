@@ -690,7 +690,162 @@ def delete_user(request, pk):
 * price
 
 ```python
+# models.py
+class PhoneNumber(models.Model):
+    """定义一个靓号数据库"""
+    mobile = models.CharField(max_length=11, verbose_name="手机号")
 
+    lv_choice = (
+        (1, "一级"),
+        (2, "二级"),
+        (3, "三级"),
+        (4, "四级"),
+        (5, "五级")
+    )
+
+    level = models.SmallIntegerField(choices=lv_choice, default=1, verbose_name="等级")
+
+    status_choices = (
+        (1, "以售卖"),
+        (2, "待售卖")
+    )
+
+    status = models.SmallIntegerField(choices=status_choices, default=2, verbose_name="状态")
+    price = models.IntegerField(default=99, verbose_name="价格")
+
+    def __str__(self):
+        return self.mobile
+```
+
+
+
+#### 功能（1）- 靓号列表
+
+* URL
+* 函数
+  * 获取所有靓号
+  * id 号码 价格 级别 状态
+
+```python
+# views.py
+def phone_list(request):
+    if request.method == "GET":
+        phone_numbers = models.PhoneNumber.objects.all().order_by('-level')
+        # 这里的order_by是用来进行排序的
+        return render(request, 'phone_list.html', {"phone_numbers": phone_numbers})
+```
+
+```python
+# urls.py
+urlpatterns = [
+    path('phone_list/', views.phone_list)
+]
+```
+
+#### 功能（2）- 新建靓号
+
+创建form类
+
+```python
+from django import forms
+```
+
+
+
+```python
+# views.py
+from django.core.validators import RegexValidator
+class NumberForm(forms.ModelForm):
+    # 校验手机号方式1
+    mobile = forms.CharField(
+    	label = "手机号",
+        validators = [RegexValidator(r'/^(13[0-9]|14[579]|15[0-3,5-9]|16[6]|17[0135678]|18[0-9]|19[89])\d{8}$/'，'手机格式错误')]
+    )
+    class Meta:
+        model = models.PhoneNumber
+        fields = '__all__'
+        # 如果需要排除某个字段
+        # exclude = ['level']
+    def __init__(self, *args, **kargs):
+        super().__init__(self, *args, **kargs)
+        for name, field in self.fields.items():
+            field.widget.attrs = {'class': 'form-control', 'placeholder': name}
+        
+
+def add_number(request):
+    if request.method == "GET":
+        form = NumberForm():
+        return render(request, 'add_number.html', {'form':form})
+    elif request.method == "POST":
+        form = NumberForm(data=request.POST)
+        if form.is_vaild():
+            from.save()
+            redirect ("/phone_list/")
+        else:
+            return render(request, 'add_number.html', {'form':form})
+       	  
+```
+
+```python
+# urls.py
+urlpatterns = [
+    path('phone_list/', views.phone_list),
+    path('add_phone/', views.add_phone),
+]
+```
+
+#### 功能（3）- 编辑靓号
+
+* URL
+* 编写view函数
+* 编写模板
+
+```python
+# urls.py
+urlpatterns = [
+    path('<int:pk>/update_phone/', views.update_phone)
+]
+```
+
+```python
+# views.py
+
+def update_phone(request, pk):
+    if request.method == "GET":
+        form_data = PhoneNumber.objects.get(id=pk)
+        form = NumberForm(data=form_data)
+        return render(request, 'update_phone.html', {"form": form})
+    elif request.method == "POST":
+        form_data = PhoneNumber.objects.get(id=pk)
+        form = NumberForm(requst.POST, instance=form)
+        return render(request, 'update_phone.html', {"form": form})
+```
+
+```html
+<!-- 修改数据模板 -->
+
+{% for field in form %}
+	{{field.label}}--{{field}}--{{field.errors.0}}
+{% endfor %}
+```
+
+#### 功能（4）- 删除靓号
+
+```python
+# urls.py
+
+urlpatterns = [
+    path('delete_phone/', views.delete_phone)
+]
+```
+
+```python
+# views.py
+
+def delete_phone(request, pk):
+    if request.method == "GET":
+        models.PhoneNumber.objects.get(id=pk).delete()
+    	return render('/phone_list/')
 ```
 
 
