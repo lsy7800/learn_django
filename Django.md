@@ -756,7 +756,7 @@ from django import forms
 # views.py
 from django.core.validators import RegexValidator
 class NumberForm(forms.ModelForm):
-    # 校验手机号
+    # 校验手机号方式1
     mobile = forms.CharField(
     	label = "手机号",
         validators = [RegexValidator(r'/^(13[0-9]|14[579]|15[0-3,5-9]|16[6]|17[0135678]|18[0-9]|19[89])\d{8}$/'，'手机格式错误')]
@@ -794,11 +794,32 @@ urlpatterns = [
 ]
 ```
 
+#### 功能（3）- 编辑靓号
 
+* URL
+* 编写view函数
+* 编写模板
 
+```python
+# urls.py
+urlpatterns = [
+    path('<int:pk>/update_phone/', views.update_phone)
+]
+```
 
+```python
+# views.py
 
-
+def update_phone(request, pk):
+    if request.method == "GET":
+        form_data = PhoneNumber.objects.get(id=pk)
+        form = NumberForm(data=form_data)
+        return render(request, 'update_phone.html', {"form": form})
+    elif request.method == "POST":
+        form_data = PhoneNumber.objects.get(id=pk)
+        form = NumberForm(requst.POST, instance=form)
+        return render(request, 'update_phone.html', {"form": form})
+```
 
 
 

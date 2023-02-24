@@ -26,7 +26,8 @@ def show_template(request):
 
 def unicom_new(request):
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/110.0.0.0 Safari/537.36"
     }
     res = requests.get("http://www.chinaunicom.com.cn/api/article/NewsByIndex/2/2022/11/news", headers=headers)
     data_list = res.json()
@@ -186,6 +187,7 @@ class NumberForm(forms.ModelForm):
         for name, field in self.fields.items():
             field.widget.attrs = {'class': 'form-control', 'placeholder': name}
 
+    # 校验方式2 使用钩子函数进行校验
     def clean_mobile(self):
         txt_mobile = self.cleaned_data['mobile']
         if len(txt_mobile) != 11:
@@ -206,3 +208,25 @@ def add_phone(request):
             return redirect("/phone_list/")
         else:
             return render(request, 'add_phone.html', {'form': form})
+
+
+def update_phone(request, pk):
+    if request.method == "GET":
+        phone_data = models.PhoneNumber.objects.get(id=pk)
+        form = NumberForm(instance=phone_data)
+        return render(request, 'update_phone.html', {"form": form})
+
+    elif request.method == "POST":
+        phone_data = models.PhoneNumber.objects.get(id=pk)
+        form = NumberForm(request.POST, instance=phone_data)
+        if form.is_valid():
+            form.save()
+            return redirect('/phone_list/')
+        else:
+            return render(request, 'update_phone.html', {"form": form})
+
+
+def delete_phone(request, pk):
+    if request.method == "GET":
+        models.PhoneNumber.objects.get(id=pk).delete()
+        return redirect('/phone_list/')

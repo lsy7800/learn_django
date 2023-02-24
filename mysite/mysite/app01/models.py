@@ -43,6 +43,7 @@ class UserList(models.Model):
 
 class PhoneNumber(models.Model):
     """定义一个靓号数据库"""
+    objects = None
     mobile = models.CharField(max_length=11, verbose_name="手机号")
 
     lv_choice = (
