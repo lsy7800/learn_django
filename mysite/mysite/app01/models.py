@@ -1,5 +1,6 @@
 from django.db import models
 
+
 # Create your models here.
 
 
@@ -33,7 +34,34 @@ class UserList(models.Model):
     # to_fields 表示与表中的哪一列数据进行关联
     # on_delete=models.CASCADE 表示级联删除，删除部门后与之关联的表信息均会删除
     # on_delete=models.SET_NULL 表示删除部门后与之关联的信息会设置为空
-    department = models.ForeignKey(verbose_name="部门", to="Department", to_field="id", null=True, blank=True, on_delete=models.SET_NULL)
+    department = models.ForeignKey(verbose_name="部门", to="Department", to_field="id", null=True, blank=True,
+                                   on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.name
+
+
+class PhoneNumber(models.Model):
+    """定义一个靓号数据库"""
+    mobile = models.CharField(max_length=11, verbose_name="手机号")
+
+    lv_choice = (
+        (1, "一级"),
+        (2, "二级"),
+        (3, "三级"),
+        (4, "四级"),
+        (5, "五级")
+    )
+
+    level = models.SmallIntegerField(choices=lv_choice, default=1, verbose_name="等级")
+
+    status_choices = (
+        (1, "以售卖"),
+        (2, "待售卖")
+    )
+
+    status = models.SmallIntegerField(choices=status_choices, default=2, verbose_name="状态")
+    price = models.IntegerField(default=99, verbose_name="价格")
+
+    def __str__(self):
+        return self.mobile

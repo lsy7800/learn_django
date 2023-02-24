@@ -31,4 +31,6 @@ urlpatterns = [
     path('add_user2/', views.add_user2),
     path('<int:pk>/update_user2/', views.update_user2),
     path('<int:pk>/delete_user2/', views.delete_user2),
+    path('phone_list/', views.phone_list),
+    path('add_phone/', views.add_phone)
 ]

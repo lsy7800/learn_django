@@ -1,6 +1,8 @@
 from django.shortcuts import render, HttpResponse, redirect
 from app01 import models
 from django import forms
+from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 import requests
 
 
@@ -97,7 +99,8 @@ def add_user(request):
 
         for info in request.POST:
             print(info)
-        models.UserList.objects.create(name=user_name, password=password, age=user_age, phone_number=phone_num, gender=gender, salary=salary, create_time=create_time, department=department)
+        models.UserList.objects.create(name=user_name, password=password, age=user_age, phone_number=phone_num,
+                                       gender=gender, salary=salary, create_time=create_time, department=department)
         print("成功添加用戶")
         return redirect('/users/')
 
@@ -119,7 +122,6 @@ class UserForm(forms.ModelForm):
 
 
 def add_user2(request):
-
     if request.method == "GET":
         form = UserForm()
         return render(request, "add_user2.html", {"form": form})
@@ -135,7 +137,6 @@ def add_user2(request):
 
 
 def update_user2(request, pk):
-
     if request.method == "GET":
         fix_data = models.UserList.objects.get(id=pk)
         form = UserForm(instance=fix_data)
@@ -151,8 +152,57 @@ def update_user2(request, pk):
 
 
 def delete_user2(request, pk):
-
     if request.method == "GET":
         models.UserList.objects.get(id=pk).delete()
 
         return redirect('/users/')
+
+
+# 靓号管理
+
+def phone_list(request):
+    if request.method == "GET":
+        # phone_numbers = models.PhoneNumber.objects.all()
+        # 如果需要排序
+        phone_numbers = models.PhoneNumber.objects.all().order_by("-level")
+        return render(request, 'phone_list.html', {"phone_numbers": phone_numbers})
+
+
+class NumberForm(forms.ModelForm):
+    # 校验方式1
+    # mobile = forms.CharField(
+    #     label="电话号码",
+    #     validators=[RegexValidator(r'/^13[0-9]\d{8}$/', '格式错误'), ],
+    # )
+
+    class Meta:
+        model = models.PhoneNumber
+        fields = '__all__'
+        # exclude = ['level']
+        # fields = ['mobile', 'level', 'status', 'price']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            field.widget.attrs = {'class': 'form-control', 'placeholder': name}
+
+    def clean_mobile(self):
+        txt_mobile = self.cleaned_data['mobile']
+        if len(txt_mobile) != 11:
+            raise ValidationError("格式错误")
+        else:
+            return txt_mobile
+
+
+def add_phone(request):
+    if request.method == "GET":
+        form = NumberForm()
+        return render(request, 'add_phone.html', {'form': form})
+
+    elif request.method == "POST":
+        form = NumberForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("/phone_list/")
+        else:
+            return render(request, 'add_phone.html', {'form': form})
