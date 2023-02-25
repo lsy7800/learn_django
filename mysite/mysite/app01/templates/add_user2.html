@@ -6,6 +6,7 @@
     <title>add user</title>
     <link rel="stylesheet" href="{% static '/plugins/bootstrap/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
 </head>
 
 <body>
@@ -24,5 +25,16 @@
         </form>
     </div>
 </body>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+    <script>
+        $(function (){
+            $('#id_create_time').datepicker({
+                format: "yyy-mm-dd",
+                startDate: "0",
+                language: 'zh-CN',
+                autoclose: true
+            })
+        })
+    </script>
 </html>
+

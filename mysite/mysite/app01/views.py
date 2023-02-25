@@ -3,6 +3,7 @@ from app01 import models
 from django import forms
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 import requests
 
 
@@ -159,13 +160,21 @@ def delete_user2(request, pk):
 
 
 # 靓号管理
-
 def phone_list(request):
     if request.method == "GET":
-        # phone_numbers = models.PhoneNumber.objects.all()
-        # 如果需要排序
-        phone_numbers = models.PhoneNumber.objects.all().order_by("-level")
-        return render(request, 'phone_list.html', {"phone_numbers": phone_numbers})
+        data_dict = {}
+        res_content = request.GET.get("content")
+        page_num = int(request.GET.get("page", 1))
+
+        if res_content:
+            data_dict["mobile__contains"] = res_content
+        # 分页操作
+        search_content = models.PhoneNumber.objects.filter(**data_dict)
+
+        paginator = Paginator(search_content, 2)
+        page_obj = paginator.get_page(page_num)
+
+        return render(request, 'phone_list.html', {'page_obj': page_obj})
 
 
 class NumberForm(forms.ModelForm):
@@ -187,9 +196,9 @@ class NumberForm(forms.ModelForm):
             field.widget.attrs = {'class': 'form-control', 'placeholder': name}
 
     def clean_mobile(self):
-        txt_mobile = self.cleaned_data['mobile']
-        if len(txt_mobile) != 11:
-            raise ValidationError("格式错误")
+        txt_mobile = self.cleaned_data["mobile"]
+        if models.PhoneNumber.objects.filter(mobile=txt_mobile):
+            raise ValidationError("号码已经存在")
         else:
             return txt_mobile
 
@@ -200,9 +209,49 @@ def add_phone(request):
         return render(request, 'add_phone.html', {'form': form})
 
     elif request.method == "POST":
-        form = NumberForm(request.POST)
+        form = NumberForm(data=request.POST)
         if form.is_valid():
             form.save()
             return redirect("/phone_list/")
         else:
             return render(request, 'add_phone.html', {'form': form})
+
+
+class FixNumber(forms.ModelForm):
+    mobile = forms.CharField(label="手机号码")
+
+    class Meta:
+        model = models.PhoneNumber
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            field.widget.attrs = {'class': 'form-control', 'placeholder': name}
+
+    def clean_mobile(self):
+        txt_mobile = self.cleaned_data['mobile']
+        if models.PhoneNumber.objects.exclude(id=self.instance.pk).filter(mobile=txt_mobile).exists():
+            raise ValidationError("号码已经存在")
+        return txt_mobile
+
+
+def update_phone(request, pk):
+    if request.method == "GET":
+        phone_data = models.PhoneNumber.objects.get(id=pk)
+        form = FixNumber(instance=phone_data)
+        return render(request, 'update_phone.html', {'form': form})
+    elif request.method == "POST":
+        phone_data = models.PhoneNumber.objects.get(id=pk)
+        form = FixNumber(request.POST, instance=phone_data)
+        if form.is_valid():
+            form.save()
+            return redirect('/phone_list/')
+        else:
+            return render(request, 'update_phone.html', {'form':form})
+
+
+def delete_phone(request, pk):
+    if request.method == "GET":
+        models.PhoneNumber.objects.get(id=pk).delete()
+        redirect('/phone_list/')

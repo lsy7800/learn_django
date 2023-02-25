@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">{% load static %}
-    <title>add phone</title>
+    <title>update phone</title>
     <link rel="stylesheet" href="{% static '/plugins/bootstrap/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 </head>
@@ -12,7 +12,6 @@
         {% for cell in form %}
             {{cell.label}}{{cell}}<span style="color:red">{{cell.errors}}</span>
         {% endfor %}
-        {{ err }}
         <button class="btn btn-success" type="submit">submit</button>
     </form>
 </body>

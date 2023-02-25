@@ -679,6 +679,10 @@ def delete_user(request, pk):
         models.User.objects.get(id=pk).delete()
 ```
 
+#### 时间组件
+
+
+
 ### 靓号管理
 
 数据库表结构
@@ -768,9 +772,19 @@ class NumberForm(forms.ModelForm):
         # 如果需要排除某个字段
         # exclude = ['level']
     def __init__(self, *args, **kargs):
-        super().__init__(self, *args, **kargs)
+        super().__init__(*args, **kargs)
         for name, field in self.fields.items():
             field.widget.attrs = {'class': 'form-control', 'placeholder': name}
+    # 校验手机号方式2
+	def clean_mobile(self):
+        txt_mobile = self.cleaned_data['mobile']
+        res_info = models.PhoneNumber.objects.filter(mobile=txt_mobile).exists()
+        if len(txt_mobile) != 11:
+            raise ValidationError("格式错误")
+        elif res_info:
+            raise ValidationError("号码已经存在")
+        else:
+            return txt_mobile
         
 
 def add_number(request):
@@ -810,15 +824,24 @@ urlpatterns = [
 
 ```python
 # views.py
-
+class FixNumber(forms.ModelForm):
+    mobile = froms.CharFiled(disabled=True, label="手机号")
+    class meta:
+        model = models.PhoneNumber
+        field = "__all__"
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs):
+            for name, field in self.fields.items():
+                field.widget.attars = {'class':'form-control', 'placeholder': name}
+    
 def update_phone(request, pk):
     if request.method == "GET":
         form_data = PhoneNumber.objects.get(id=pk)
-        form = NumberForm(data=form_data)
+        form = FixNumber(data=form_data)
         return render(request, 'update_phone.html', {"form": form})
     elif request.method == "POST":
         form_data = PhoneNumber.objects.get(id=pk)
-        form = NumberForm(requst.POST, instance=form)
+        form = FixNumber(requst.POST, instance=form)
         return render(request, 'update_phone.html', {"form": form})
 ```
 
@@ -849,11 +872,150 @@ def delete_phone(request, pk):
     	return render('/phone_list/')
 ```
 
+#### 功能（5）- 禁止重复
 
+* 添加号码时
 
+```python
+# views.py
 
+class NumberForm(forms.ModelForm):    
+    class Meta:
+        model = models.PhoneNumber
+        fields = "__all__"
+        
+    def clean_mobile(self):
+        txt_mobile = self.cleaned_data['mobile']
+        # 使用钩子函数校验号码是否存在
+        res_info = models.PhoneNumber.objects.filter(mobile=txt_mobile).exists()
+        if len(txt_mobile) != 11:
+            raise ValidationError("格式错误")
+        elif res_info:
+            raise ValidationError("号码已经存在")
+        else:
+            return txt_mobile
+        
+def add_phone(request):
+    if request.method == "POST":
+        form = NumberForm(data=request.POST)
+        if form.isvaild():
+            form.save()
+            redirect('/phone_list/')
+```
 
+* 编辑号码时
 
+  需要排除自己以外的号码
+
+```python
+# views.py
+
+class FixNumberForm(forms.ModelForm):
+    class Meta:
+        model = models.PhoneNumber
+        fields = "__all__"
+        
+    def clean_mobile(self):
+        text_mobile = self.cleand_data['mobile']
+        res_info = models.PhoneNumber.objects.exclude(id=self.instance.pk).filter(mobile=text_mobile).exists()
+        if len(txt_mobile) != 11:
+            raise ValidationError("格式错误")
+        elif res_info:
+            raise ValidationError("号码已经存在")
+        else:
+            return txt_mobile
+        
+def update_phone(request, pk):
+    if request.method == "POST":
+        phone_info = models.objects.filter("id=pk")
+        form = FixNumberForm(data=request.POST, instance=phone_data)
+        if form.valid():
+            form.save()
+            return redirect("/phone_list/")
+        else:
+            return render(request, 'update_phone.html', {"form": form})
+```
+
+#### 功能（6）- 搜索靓号
+
+除了直接过滤之外还可以过滤字典
+
+```python
+data_dict = {"mobile": "15620939846", "id": 5}
+models.PhoneNumber.objects.filter(**data_dict)
+
+# 过滤数值比较
+models.PhoneNumber.objects.filter(id=12) # 等于12
+models.PhoneNumber.objects.filter(id__gt=12) # 大于12
+models.PhoneNumber.objects.filter(id__gte=12) # 大于等于12
+models.PhoneNumber.objects.filter(id__lt=12) # 小于12
+models.PhoneNumber.objects.filter(id__lte=12) # 小于等于12
+
+# 过滤字符串
+models.PhoneNumber.objects.filter(mobile__startwith="123") # 以123开头
+models.PhoneNumber.objects.filter(mobile__endtwith="123") # 以123结尾
+models.PhoneNumber.objects.filter(mobile__contains="123") # 包涵123
+```
+
+```python
+# views.py
+
+def filter_phone(request):
+    if request.method == "GET":
+        data_dict = {}
+        res_content = request.GET.get("content")
+        if res_content:
+            data_dict['mobile__contains'] = res_content
+        search_content = models.objects.filter(**data_dict)
+        return render(request, 'phone_list.html', {'search_content':search_content})
+    # 注意template 模板中的数据也要对应修改为 search_content
+```
+
+```html
+<!-- phone_list.html -->
+<form method="get">
+    <div class="input-group mb-3">
+        <input type="search" class="form-control" placeholder="请输入搜索内容..."
+               aria-label="Recipient's username" aria-describedby="button-addon2" name="content">
+        <button class="btn btn-outline-secondary" type="submit" id="button-addon2"><i class="bi bi-search"></i></button>
+    </div>
+</form>
+```
+
+#### 功能（7）- 列表分页
+
+```python
+# views.py
+def filter_phone(request):
+    if request.method == "GET":
+        data_dict = {}
+        pagesize = 2
+        res_content = request.GET.get("content")
+        if res_content:
+            data_dict["mobile__contains"] = res_content
+        search_content = models.objects.filter(**data_dict)
+
+        # 分页操作
+        search_content = search_content[(pagenum-1) * pagesize : pagenum * pagesize]
+        return render(request, 'phone_list', {'search_content': search_content})
+```
+
+```python
+# 直接使用django自带的分页模块
+from django.core.paginator import Paginator
+from django.shortcuts import render
+from myapp.models import Contact
+
+def listing(request):
+    contact_list = Contact.objects.all()
+    paginator = Paginator(contact_list, 25) # Show 25 contacts per page.
+
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'list.html', {'page_obj': page_obj})
+
+# 可以自己封装一个分页方法，待实现！
+```
 
 
 
