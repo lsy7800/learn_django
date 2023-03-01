@@ -2,17 +2,26 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
+	{% load static %}
 	<title>login</title>
+	<link rel="stylesheet" href="{% static '/plugins/bootstrap/css/bootstrap.min.css' %}">
 </head>
 <body>
-  <form action="/login/" method="post">
-    {% csrf_token %}
-    <p>用户名：</p>
-    <input type="text" name="username"/>
-    <p>密码：</p>
-    <input type="password" name="password"/>
-    <button type="submit">登录</button>
-	  <span style="color:red;">{{errMsg}}</span>
-  </form>
+<div class="container">
+	<div class="row justify-content-center" style="border:1px solid #efefef;">
+		<form action="/login/" method="post" class="col-4" novalidate>
+			{% csrf_token %}
+			<p>用户名：</p>
+			{{form.username}}
+			<p>密码：</p>
+			{{form.password}}
+			<button type="submit" class="btn btn-primary">登录</button>
+			{% for err in form %}
+			<span style="color:red;">{{err.errors}}</span>
+			{% endfor %}
+		</form>
+	</div>
+</div>
+
 </body>
 </html>

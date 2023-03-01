@@ -65,3 +65,11 @@ class PhoneNumber(models.Model):
 
     def __str__(self):
         return self.mobile
+
+
+class Admin(models.Model):
+    username = models.CharField(verbose_name="admin account", max_length=32)
+    password = models.CharField(verbose_name="password", max_length=64)
+
+    def __str__(self):
+        return self.username

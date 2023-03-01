@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>admin_list</title>
+</head>
+<body>
+{% for admin in admin_list %}
+{{admin.username}} -- {{admin.password}}
+{% endfor %}
+</body>
+</html>

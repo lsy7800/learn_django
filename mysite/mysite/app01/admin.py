@@ -5,3 +5,4 @@ from app01 import models
 admin.site.register(models.UserList)
 admin.site.register(models.Department)
 admin.site.register(models.PhoneNumber)
+admin.site.register(models.Admin)

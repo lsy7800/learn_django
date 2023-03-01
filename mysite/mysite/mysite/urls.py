@@ -35,4 +35,9 @@ urlpatterns = [
     path('add_phone/', views.add_phone),
     path('<int:pk>/update_phone/', views.update_phone),
     path('<int:pk>/delete_phone/', views.delete_phone),
+    path('admin_list/', views.admin_list),
+    path('add_admin/', views.add_admin),
+    path('<int:aid>/update_admin/', views.update_admin),
+    path('<int:aid>/reset_password/', views.reset_password),
+    path('logout/', views.logout)
 ]

@@ -1017,5 +1017,542 @@ def listing(request):
 # 可以自己封装一个分页方法，待实现！
 ```
 
+### 管理员系统
 
+#### 功能（1）- 管理员列表
+
+```python
+# models.py 
+
+class Admin(models.Model):
+    username = models.CharFiled(verbose_name="管理员账号", max_length=32)
+    password = models.CharFiled(verbose_name="密码", max_length=64)
+ 	
+    def __str__(self):
+        return self.username
+```
+
+```python
+# views.py
+from . import models
+
+def admin_list(request):
+    
+    queryset = models.Admin.objects.all()
+    return render(request, 'admin_list.html', {"admin_list": queryset})
+```
+
+```python
+# urls.py
+urlpatterns = [
+    path('/admin_list/', views.admin_list)
+]
+```
+
+#### 功能（2）- 新建管理员
+
+```python
+# 编写md5校验模块
+
+import hashlib
+from django.conf import settings
+
+def md5(data_string):
+    obj = hashlib.md5(settings.SCRET_KEY.encode('utf-8'))  # 盐,盐用的是django自己生成的密钥
+    obj = obj.update(data_string.encode('utf-8')) # 将密码惊醒md5加密,然后加盐
+    # 返回加密后的密码字符串
+    return obj.hexdigest()
+```
+
+
+
+```python
+# view.py
+
+class AdminModelForm(forms.ModelForm):
+    confirm_password = Froms.CharFiled(label="确认密码"， max_length=64, forms.widget=PasswordInput)
+    
+    class Meta:
+        model = models.Admin()
+        fields = ['username', 'password', 'confirm_password']
+        
+        wigets = {
+            "password":forms.PasswordInput
+        }
+    
+    # 使用钩子函数对密码进行加密, 钩子函数是按照顺序执行的
+    def clean_password(self):
+        pwd = self.cleaned_data["password"]
+        # 加密措施
+        pwd = md5(pwd)
+        return pwd
+    
+    # 使用钩子函数进行密码一致性校验
+    def clean_confirm_password(self):
+        c_pwd = self.cleaned_data["confirm_data"]  # 需要对确认的密码同样进行加码
+        c_pwd = mdt(pwd)
+        pwd = self.cleaned_data["password"]        # 这里的密码已经是加密过的
+        if c_pwd != pwd:
+            raise VlidationError("密码输入不一致")
+        return c_pwd
+     
+
+def add_admin(request):
+    if request.method == "GET":
+        form = AdminModelForm()
+        returen render(request, 'add_admin.html', {'form':form})
+    elif request.method = "POSt":
+        form = AdminModelForm(data=request.POST)
+        if form.is_valid():
+            form.save()
+            returen redirect('/admin/')
+        else:
+            return render(request, 'add_admin.html', {'from': form})
+```
+
+```python
+# urls.py
+
+urlpatterns = [
+    path('/add_admin/', views.add_admin)
+]
+```
+
+#### 功能（3）- 管理员编辑
+
+```python
+# views.py
+
+def update_admin(request, aid):
+    if request.method == "GET":
+        admin_data = models.Admin.objects.get(id=aid)
+        if amin_data: # 判断aid是否存在
+            form = AdminModelForm(intance=admin_data)
+            return render(request, 'add_base.html', {'form': form})
+        else:
+            return redirect('/admin_list/')
+    elif request.methd == "POST":
+        admin_data = models.Admin.objects.get(id=aid)
+        form = AdminModelForm(instance=admin_data, data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('/admin_list/')
+        else:
+            return render(request, 'add_base.html', {'form':form})        
+```
+
+```python
+# urls.py
+
+urlpatterns = [
+    path('<int:aid>/update_admin/', views.update_admin)
+]
+```
+
+#### 功能（4）- 管理员删除
+
+```python
+# views.py
+
+def delete_admin(request, aid):
+    if request.method == "GET":
+        models.Admin.objects.get(id=aid).delete()
+       	return redirect('/admin_list/')
+```
+
+#### 功能（5）- 重置密码
+
+* 注意重置密码时不允许与原密码相同
+
+```python
+# views.py
+
+class ResetPasswordForm(forms.ModelForm):
+    # 控制开关
+    flag = True
+        
+    confirm_password = forms.CharField(
+        label="确认密码",
+        max_length=64,
+        widget=forms.PasswordInput
+    )
+    
+    class Meta:
+        model = models.Admin
+        filelds = ['password']
+        widgets = {
+            "password": forms.PasswordInput
+        }
+        
+    def clean_password(self):
+        pwd = self.cleaned_data["password"]
+        pwd = md5(pwd)
+        old_pwd = models.Admin.objects.filter(id=self.instance.pk, password=pwd).exists()
+        if old_pwd:
+            self.flag = False
+            raise ValidationError("不能使用旧密码")
+        return pwd
+            
+    
+    def clean_confirm_password(self):
+        if not self.flag
+        	self.flag = True
+        	return self.cleaned_data["confirm_data"]
+        c_pwd = self.cleaned_data["confirm_data"]
+        c_pwd = md5(c_pwd)
+        pwd = self.cleaned_data["password"]
+        if c_pwd == pwd:
+            return c_pwd
+        else:
+            raise ValidationError('用户名密码不一致')
+        
+
+def reset_password(request, aid):
+    if request.method == "GET":
+        admin_info = models.Admin.objects.get(id=aid)
+        form = AdminModelForm(instance=admin_info)
+        return render(request, 'add_base.html', {'form': form})
+    elif request.method == "POST":
+        admin_info = models.Admin.objects.get(id-aid)
+        form = AdminModelForm(instance=admin_info, data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('/admin_list/')
+        else:
+            return render(request, 'add_base.html', {'form':form})
+```
+
+```python
+# urls.py
+
+urlpatterns = [
+    path('<int:aid>/reset_password/', views.reset_password)
+]
+```
+
+### 用户登录
+
+http协议是无状态 & 短链接
+
+* cookie
+
+  * cookie 是保存在浏览器端的键值对
+
+  * cookie 在浏览器发送请求时会自动携带
+
+* session
+
+  * session 是存储用户信息的的一种方式，有很多种存储方式（包括：数据库，radis，文件）
+  * django 中session默认是存储在数据库中的
+
+#### 功能（1）- 用户登录
+
+```python
+# views.py
+
+class LoginForm(forms.Form):
+    
+    username = forms.CharFiled(
+        max_length=32,
+        widget=forms.TextInput(),
+        require=True
+    )
+    
+    password = forms.CharField(
+    	max_length=64,
+        widget=form.PasswordInput(),
+        require=True
+    )
+    
+    def clean_password(self):
+        pwd = self.clean_data.get("password")
+        pwd = mdt(pwd)
+        return pwd
+    
+
+def login(request):
+    if request.method == "GET":
+        form = LoginForm()
+        return render(request, 'login.html', {'from':form})
+    elif request.method == "POST":
+        form = LoginForm(data=request.POST)
+        if form.is_valid()
+        	user_data = models.Admin.objects.get(**models.clean_data)
+            if user_data:
+                """
+                1.验证成功跟以后网站生成随机字符串写入到cookie中
+                2.然后再将随机字符串写入到session中
+                3.request.session["info"] = {'id':user_data.id,'name':user_data.username} 使用该条语句进行存储
+                """
+				request.session["info"] = {'id':user_data.id, 'name':user_data.username}
+				return redirect('/users/')
+            else:
+                form.add_error('password',"用户名或密码错误，请重新输入")
+        return render(request, 'login.html', {'form':form})
+		
+```
+
+#### 功能（2）- 用户认证
+
+```python
+# views.py
+
+def amin_list(request):
+    """
+    1.检查用户是否已经登录，已登录，继续向下走，未登录，跳转回到登录页面
+    2.用户发来请求，获取cookie随机字符串，拿到随机字符串到session中进行比对
+    3.使用request.session.get('info')获取到session
+    """
+    info = request.session.get('info')
+    if not info:
+        return redirect('/login/')
+```
+
+##### 认识中间件
+
+```python
+# middleware/auth
+
+from django.utils.deprecation import MiddlewareMixin
+
+class M1(MiddlewareMixin):
+    """中间件1"""
+    def process_request(self, request):
+        print('m1 is coming')
+        # 如果没有返回值默认返回None,这个时候中间件将向后继续运行
+        # 如果有返回值则直接返回运行
+    def process_response(self, request, response):
+        print('m1 is going')
+        return response
+class M1(MiddlewareMixin):
+    """中间件2"""
+    def process_request(self, request):
+        print('m1 is coming')
+    def process_response(self, request, response):
+        print('m1 is going')
+        return response
+```
+
+在settings中进行中间件注册
+
+```python
+# settings.py
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'app01.middleware.auth.m1',
+    'app01.middleware.auth.m2'
+]
+```
+
+#### 功能（3）- 校验登录
+
+编写中间件
+
+```python
+# middleware/auth.py
+
+class AuthMiddleware(MiddlewareMixin):
+    
+    def process_request(self, request):
+        print('启动用户校验')
+        # 排除掉不需要验证就可以访问的页面
+        if request.path_info == '/login/':
+            return
+        """读取当前访问用户的信息"""
+        is_login = request.session.get('info').exists()
+        if not is_login:
+            retrun redirect('/login/')
+        return None
+    def process_response(self, request, response):
+        print('完成了用户校验')
+        return response
+```
+
+注册中间件
+
+```python
+# settins.py
+MIDDLEWARE=[
+    ...,
+    'app01.middleware.auth.LoginMiddleware',
+]
+```
+
+#### 功能（4）- 用户注销
+
+```python
+# views.py
+
+def logout(request):
+    if request.method == "GET":
+       	# 清除session
+        request.session.clear()
+        return redirect('/login/')
+```
+
+#### 功能（5）- 验证码
+
+##### 生成图片
+
+```python
+# 安装pillow
+pip install pillow
+```
+
+验证码生成原理
+
+* 取出随机数字和字母
+* 将字母和随机数写在画布上
+* 在画布上随机添加点和干扰线
+
+```python
+from PIL from import Image, ImageDraw, ImageFont
+
+img = Image.new(mode='RGB', size=(120, 30), color=(255, 255, 255)) # 255 255 255 是白色
+draw = ImageDraw.Draw(img, mode='RGB')
+
+font - ImageFont.truetype("字体.ttf", 28)
+
+draw.text([0, 0], 'python', 'red')
+with open('code.png', 'wb') as f:
+    image.save(f, format='png')
+
+```
+
+
+
+```python
+# veiws.py
+
+def code_image(request):
+    # 调用pillow函数生成图片
+    img, code_string = check_code()
+    
+    # 写入到自己的session中以便后面进行校验
+    request.session['image_code'] = code_string
+    # 给session设置60秒超时
+    request.session.set_expiry(60)
+    
+```
+
+### Ajax请求
+
+浏览器向网站发送请求时：使用 URL 和 Form进行提交
+
+* POST
+* GET
+
+这两种提交方式都会导致页面的刷新
+
+除了以上两种请求方式之外还可以使用Ajax的方式进行请求（偷偷进行请求）
+
+* 依赖Jquery
+* 编写JavaScript代码
+
+```javascript
+$.ajax({
+    url: '发送的地址',
+    type: 'GET', // 或者POST，代表请求方式
+    data:{
+        page:1,
+        name:lsy,
+    }
+    // data代表的是传递的参数
+    success: function(res){
+    	console.log('请求成功')
+    	console.log(res)
+}
+})
+```
+
+#### GET请求
+
+```javascript
+// 发送GET请求
+$.ajax({
+    url: '/task/ajax/',
+    type: "GET",
+    data:{
+        n1:123,
+        n2:454,
+    },
+    success:function(res){
+        cosole.log(res)
+    }
+})
+```
+
+```python
+# views.py
+def task_ajax(request):
+    if request.method == "GET":
+        print(request.GET)
+        return HttpResponse('reqest GET success')
+```
+
+#### POST请求
+
+```javascript
+// 发送post请求
+$.ajax({
+    url:"/task/ajax",
+    type: "POST",
+    data:{
+        n1:343,
+        n2:454
+    },
+    success:function(res){
+        console.log(res)
+    }
+})
+```
+
+```python
+# views.py
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def task_ajax(request):
+    if request.method == "POST":
+        print(request.POST)
+        return HttpResponse('request POST success')
+```
+
+#### Ajax请求返回值
+
+通常返回的是JSON格式的数据
+
+```python
+# views.py
+import json
+def task_ajax(request):
+    if request.method == "GET":
+        print(request.GET)
+        data_dict = {'status': 200, 'info_list':[
+            {'name': 'zs', 'age':18},
+            {'name': 'ls', 'age':20},
+            {'name': 'ww', 'age':30}
+        ]}
+        # 将python字典转化为json
+        json_dict = json.dumps(data_dict)
+        return json_dict
+        # 或者可以直接使用django的返回函数
+        return JsonResponse(data_dict)
+```
+
+
+
+
+
+
+
+
+
+ 
 

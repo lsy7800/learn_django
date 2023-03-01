@@ -13,7 +13,9 @@
         <div class="card" style="margin-top: 15px;">
             <div class="card-header">
                 <h3>员工管理</h3>
+                <h3>{{request.session.info.name}}</h3>
                 <a href="/add_user2/" class="btn btn-primary btn-lg">添加员工<i class="bi bi-plus-circle-fill" style="margin-left: 10px;"></i></a>
+                <a href="/logout/" class="btn btn-danger btn-lg">退出登录</a>
             </div>
             <div class="card-body">
                 <table class="table table-bordered align-middle">

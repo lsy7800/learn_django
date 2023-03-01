@@ -45,19 +45,49 @@ def net_request(request):
         return HttpResponse("POST请求")
 
 
-def login(request):
-    if request.method == "GET":
-        return render(request, 'login.html')
-    else:
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        print(username, password)
-        if username == 'lsy' and password == "123":
-            return HttpResponse("登录成功")
-        else:
-            errMsg = "用户名或密码错误请重新输入"
-            return render(request, 'login.html', {'errMsg': errMsg})
+class LoginForm(forms.Form):
+    username = forms.CharField(label="用户名",
+                               max_length=32,
+                               widget=forms.TextInput(),
+                               required=True
+                               )
+    password = forms.CharField(label="密码",
+                               max_length=64,
+                               widget=forms.PasswordInput(),
+                               required=True
+                               )
 
+    def clean_password(self):
+        print(self.cleaned_data.get("password"))
+        pwd = encrypt.md5(self.cleaned_data.get("password"))
+        return pwd
+
+
+def login(request):
+    """重构login模块，更新数据校验功能"""
+    if request.method == "GET":
+        form = LoginForm()
+        return render(request, 'login.html', {"form": form})
+    elif request.method == "POST":
+        form = LoginForm(data=request.POST)
+        if form.is_valid():
+            user_data = models.Admin.objects.get(**form.cleaned_data)
+            if user_data:
+                """
+                1.验证成功跟以后网站生成随机字符串写入到cookie中
+                2.然后再将随机字符串写入到session中
+                3.request.session["info"] = {'id':user_data.id,'name':user_data.username} 使用该条语句进行存储
+                """
+                request.session["info"] = {'id':user_data.id, 'name':user_data.username}
+                return redirect('/users/')
+            else:
+                form.add_error("password", "用户名或者密码错误")
+        return render(request, 'login.html', {'form': form})
+
+
+def logout(request):
+    request.session.clear()
+    return redirect('/login/')
 
 def show_users(request):
     if request.method == "GET":
@@ -255,3 +285,130 @@ def delete_phone(request, pk):
     if request.method == "GET":
         models.PhoneNumber.objects.get(id=pk).delete()
         redirect('/phone_list/')
+
+
+def admin_list(request):
+    queryset = models.Admin.objects.all()
+    return render(request, 'admin_list.html', {"admin_list": queryset})
+
+
+from .utils import encrypt
+class AdminModelForm(forms.ModelForm):
+
+    conform_password = forms.CharField(
+        max_length=64,
+        label="确认密码",
+        widget=forms.PasswordInput
+    )
+
+    class Meta:
+        model = models.Admin
+        fields = ['username', 'password', 'conform_password']
+        widgets = {
+            'password': forms.PasswordInput
+        }
+
+    def clean_password(self):
+        pwd = self.cleaned_data["password"]
+        pwd = encrypt.md5(pwd)
+        return pwd
+
+    def clean_conform_password(self):
+        cpwd = self.cleaned_data["conform_password"]
+        cpwd = encrypt.md5(cpwd)
+        pwd = self.cleaned_data["password"]
+        if cpwd == pwd:
+            return cpwd
+        else:
+            raise ValidationError("密码输入不一致，请确认密码")
+
+
+def add_admin(request):
+    if request.method == "GET":
+        form = AdminModelForm()
+        return render(request, 'add_base.html', {'form': form})
+
+    elif request.method == "POST":
+        form = AdminModelForm(data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('/admin_list/')
+
+        else:
+            return render(request, 'add_base.html', {'form': form})
+
+
+def update_admin(request, aid):
+    if request.method == "GET":
+        admin_info = models.Admin.objects.get(id=aid)
+        form = AdminModelForm(instance=admin_info)
+        return render(request, 'add_base.html', {"form": form})
+    elif request.method == "POST":
+        admin_info = models.Admin.objects.get(id=aid)
+        form = AdminModelForm(instance=admin_info, data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('/admin_list/')
+        else:
+            return render(request, 'add_base.html', {"form": form})
+
+
+class ResetPasswordForm(forms.ModelForm):
+
+    flag = True
+
+    conform_password = forms.CharField(
+        label="确认密码",
+        max_length=64,
+        widget=forms.PasswordInput
+    )
+
+    class Meta:
+        model = models.Admin
+        fields = ['password', 'conform_password']
+        widgets = {
+            "password": forms.PasswordInput
+        }
+
+    def clean_password(self):
+        pwd = self.cleaned_data["password"]
+        pwd = encrypt.md5(pwd)
+
+        old_pwd = models.Admin.objects.filter(id=self.instance.pk, password=pwd).exists()
+        print(old_pwd)
+        if old_pwd:
+            print('密码是旧密码')
+            self.flag = False
+            raise ValidationError("不能使用旧密码")
+        return pwd
+
+    def clean_conform_password(self):
+        if not self.flag:
+            self.flag = True
+            return self.cleaned_data["conform_password"]
+        print(self.cleaned_data)
+        print(self.cleaned_data)
+        print(self.cleaned_data)
+        c_pwd = self.cleaned_data["conform_password"]
+        c_pwd = encrypt.md5(c_pwd)
+        pwd = self.cleaned_data["password"]
+        if pwd != c_pwd:
+            raise ValidationError('密码输入不一致，请重新输入！')
+        else:
+            return c_pwd
+
+
+
+def reset_password(request, aid):
+    if request.method == "GET":
+        admin_info = models.Admin.objects.get(id=aid)
+        form = ResetPasswordForm(instance=admin_info)
+        return render(request, 'add_base.html', {'form': form, 'title': admin_info.username})
+    elif request.method == "POST":
+        admin_info = models.Admin.objects.get(id=aid)
+        form = ResetPasswordForm(data=request.POST, instance=admin_info)
+        if form.is_valid():
+            form.save()
+            return redirect('/admin_list/')
+        else:
+            return render(request, 'add_base.html', {'form': form})
